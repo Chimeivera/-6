@@ -2,79 +2,88 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8" />
-<!-- 鎖縮放，避免 iOS 匯出前自動放大成預覽 -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>儀器合約注意事項</title>
 
-<!-- 主庫；若被擋，程式會自動用 jsDelivr 補載 -->
+<!-- 必要函式庫；若被擋，程式會自動以 jsDelivr 補載 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
   :root{
-    --page-w:210mm; --page-h:297mm; --page-pad:12mm;
-    --brand-blue:#004d99;
-    --ink:#333; --muted:#555; --border:#d0d7de;
+    --brand:#004d99; --ink:#222; --muted:#666; --border:#cfd4dc;
     --hl:#6a1b9a; --hl-bg:#f3e5f5; --hl-bg-strong:#ede7f6;
   }
-  html, body { height:100%; }
+  html,body{height:100%}
   body{
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC",Arial,sans-serif;
     margin:0; background:#f4ffec; color:var(--ink);
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
   }
-  .container{ max-width:960px; margin:16px auto; background:#fff; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,.08); border-radius:12px; }
-  h1{ text-align:center; color:#004d99; border-bottom:3px solid #004d99; padding:12px 8px 16px; margin:4px 0 24px; font-weight:700; font-size:clamp(18px,2.6vw,28px); }
-  .input-group{ margin-bottom:12px; }
-  .input-group label{ display:block; margin:0 0 6px; font-weight:600; color:#555; }
-  .input-group input, .input-group select{ width:100%; padding:12px; border:1px solid #d0d7de; border-radius:8px; font-size:16px; }
-  .input-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .button-group{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
-  #generateBtn,#pdfExportBtn{ padding:12px; border:none; border-radius:10px; cursor:pointer; font-size:18px; }
-  #generateBtn{ background:#2e7d32; color:#fff; }
-  #pdfExportBtn{ background:#3f51b5; color:#fff; display:none; }
-  #generateBtn:hover,#pdfExportBtn:hover{ filter:brightness(.95); }
-  #output-container{ margin-top:20px; padding:16px; border:2px dashed #d7d7d7; background:#fafafa; border-radius:10px; overflow:auto; }
 
-  /* A4 內容（桌機 A4；手機僅改預覽，匯出會還原） */
-  #pdf-content-wrapper{
-    width:var(--page-w); min-height:var(--page-h); padding:var(--page-pad);
-    box-sizing:border-box; background:#fff; margin:0 auto;
-    font-family:"Times New Roman","Noto Serif TC",serif; font-size:12pt; line-height:1.35;
-    transform-origin:top left;
+  /* 外框與表單 */
+  .container{max-width:960px;margin:16px auto;background:#fff;padding:20px;border-radius:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,.08);}
+  h1{margin:0 0 16px;text-align:center;color:var(--brand);font-weight:700;
+    border-bottom:3px solid var(--brand);padding:10px 6px 14px;font-size:clamp(18px,2.6vw,28px)}
+  .input-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .input-group{margin:8px 0 12px}
+  .input-group label{display:block;margin:0 0 6px;color:#555;font-weight:600}
+  .input-group input,.input-group select{width:100%;padding:12px;border:1px solid #d0d7de;border-radius:8px;font-size:16px}
+  .button-group{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  #generateBtn,#pdfExportBtn{padding:12px;border:none;border-radius:10px;cursor:pointer;font-size:18px}
+  #generateBtn{background:#2e7d32;color:#fff}
+  #pdfExportBtn{background:#3f51b5;color:#fff;display:none}
+  #generateBtn:hover,#pdfExportBtn:hover{filter:brightness(.95)}
+  #output-container{margin-top:18px;padding:16px;border:2px dashed #dadada;background:#fafafa;border-radius:10px}
+
+  /* —— 文件核心樣式（依圖片版型） —— */
+  #doc{
+    width: 190mm;                 /* 設計寬度（不強求 A4，為了接近你截圖的視覺） */
+    margin:0 auto; background:#fff; color:#111;
+    font-family:"Times New Roman","Noto Serif TC",serif;
+    font-size:12pt; line-height:1.36;
+    box-sizing:border-box; padding:12mm 10mm;
   }
-  .document-title{ text-align:center; font-size:16pt; font-weight:700; margin:0 0 4px; }
-  .document-subtitle{ text-align:center; font-size:13pt; margin:0 0 8px; border-bottom:1px solid #000; padding-bottom:4px; }
-  .info-group{ margin:8px 0 10px; }
-  .info-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; }
-  .kv{ display:grid; grid-template-columns:max-content 1fr; align-items:center; column-gap:8px; min-height:24px; }
-  .kv .k{ font-weight:600; color:#000; min-width:88px; }
-  .kv .v{ border-bottom:1px dashed #bbb; padding:1px 2px 2px; }
-  .highlight{ font-weight:700; color:#6a1b9a; background:#f3e5f5; padding:1px 4px; border-radius:3px; }
-  .highlight-amount{ font-weight:700; color:#6a1b9a; background:#ede7f6; padding:1px 4px; border-radius:3px; line-height:1; display:inline-block; vertical-align:middle; }
-  .section-title{ font-weight:700; color:#004d99; margin-top:10px; display:block; }
-  .section-title.red{ color:#d32f2f; }
+  .doc-title{
+    text-align:center;font-weight:800;font-size:18pt;letter-spacing:.5px;margin:2mm 0 1mm;
+  }
+  .doc-subtitle{
+    text-align:center;font-size:12.5pt;margin:0 0 4mm;color:#333;
+  }
+  .rule{height:1px;background:#000;margin:2mm 0 3mm;opacity:.65}
 
-  #pdf-content-wrapper p{ margin:4px 0; }
-  #pdf-content-wrapper ol{ margin:4px 0 6px 20px; padding-left:2px; }
-  #pdf-content-wrapper, #pdf-content-wrapper *{ page-break-inside:auto; }
-  @page{ margin:0; }
+  /* 兩欄資訊區 + 點點導線（整行貫穿） */
+  .info{
+    border-top:1px dashed #bbb; margin-top:2mm; padding-top:1mm;
+  }
+  .kv-line{
+    position:relative;padding:2mm 0 2.2mm; /* 讓底線露出 */
+    background:repeating-linear-gradient(to right, #bdbdbd 0 3px, transparent 3px 8px) left bottom/100% 1px no-repeat;
+    display:flex; flex-wrap:wrap; align-items:flex-end; gap:6px 14px;
+  }
+  .kv-line .k{font-weight:700;color:#000;white-space:nowrap}
+  .kv-line .v{white-space:nowrap}
+  .hl{background:var(--hl-bg);color:var(--hl);font-weight:800;padding:0 4px;border-radius:3px}
+  .amt{background:var(--hl-bg-strong);color:var(--hl);font-weight:800;padding:0 6px;border-radius:10px}
+  .section{margin-top:3mm}
+  .section-title{color:#d32f2f;font-weight:800;margin:2mm 0 1mm}
 
-  /* 手機預覽（匯出會還原為 12pt） */
+  ol{margin:1mm 0 0 6mm; padding-left:1mm}
+  ol>li{margin:1.4mm 0}
+
+  /* 手機僅放大閱讀字級；匯出時會強制還原 12pt */
   @media (max-width:768px){
-    .container{ margin:8px; padding:14px; }
-    .input-row{ grid-template-columns:1fr; }
-    .button-group{ grid-template-columns:1fr; position:sticky; bottom:0; background:#fff; padding-bottom:6px; }
-    .info-grid{ grid-template-columns:1fr; }
-    #pdf-content-wrapper{ width:100% !important; min-height:auto; padding:16px; font-size:14px; transform:none !important; }
+    #doc{width:100% !important;padding:14px;font-size:14px}
+    .input-row{grid-template-columns:1fr}
+    .button-group{grid-template-columns:1fr}
   }
 
-  /* 匯出鎖定：避免 iOS 在匯出時切到預覽 */
-  body.exporting{ overflow:hidden; }
-  body.exporting #pdf-content-wrapper{
+  /* 匯出鎖定：避免 iOS 在匯出時變成預覽或重排 */
+  body.exporting{overflow:hidden}
+  body.exporting #doc{
+    width:190mm !important; padding:12mm 10mm !important; font-size:12pt !important;
     position:fixed !important; left:0 !important; top:0 !important; margin:0 !important;
-    width:210mm !important; min-height:297mm !important; padding:12mm !important;
-    transform:none !important; -webkit-transform:none !important;
   }
 </style>
 </head>
@@ -137,37 +146,24 @@
   </div>
 
 <script>
-  // ===== 原始資料 =====
+  // 基本資料
   const CAMPUS_DATA = {
     "總院": { name: "奇美醫療財團法人奇美醫院 (總院)", phone: "06-2812811" },
     "佳里": { name: "奇美醫療財團法人奇美醫院 (佳里院區)", phone: "06-7263333" },
     "柳營": { name: "奇美醫療財團法人奇美醫院 (柳營院區)", phone: "06-6226999" }
   };
+
   const contractForm = document.getElementById('contractForm');
   const pdfExportBtn = document.getElementById('pdfExportBtn');
   const outputContainer = document.getElementById('output-container');
   let currentOrderNumber = "";
 
-  // 預覽縮放（匯出中不動版面）
-  function fitPreviewToScreen(){
-    if (window.__exporting) return;
-    const el = document.getElementById('pdf-content-wrapper');
-    if(!el) return;
-    if(window.innerWidth < 768){ el.style.transform='none'; return; }
-    const rawW = el.getBoundingClientRect().width;
-    const vw = Math.min(window.innerWidth, document.documentElement.clientWidth);
-    const scale = Math.min(1, (vw - 32) / rawW);
-    el.style.transformOrigin = 'top left';
-    el.style.transform = `scale(${scale})`;
-  }
-  window.addEventListener('resize', fitPreviewToScreen);
-
-  contractForm.addEventListener('submit', (e)=>{ e.preventDefault(); generateContract(); });
+  contractForm.addEventListener('submit', (e)=>{ e.preventDefault(); generateDoc(); });
   pdfExportBtn.addEventListener('click', exportToPDF);
 
-  function formatCurrency(n){ return n.toLocaleString('en-US',{minimumFractionDigits:0, maximumFractionDigits:0}); }
+  function nfmt(n){ return n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 
-  function generateContract(){
+  function generateDoc(){
     const campusKey     = document.getElementById('campusSelect').value;
     const orderNumber   = document.getElementById('orderNumber').value.trim();
     const productName   = document.getElementById('productName').value.trim();
@@ -176,76 +172,81 @@
     const processorName = document.getElementById('processorName').value.trim();
     const processorExt  = document.getElementById('processorExt').value.trim();
 
-    if(!campusKey){ outputContainer.innerHTML = '<p style="color:#b00020;text-align:center;">請先選擇院區。</p>'; pdfExportBtn.style.display='none'; return; }
-    if(isNaN(totalAmount) || totalAmount<=0){ outputContainer.innerHTML = '<p style="color:#b00020;text-align:center;">請輸入有效的合約總金額。</p>'; pdfExportBtn.style.display='none'; return; }
+    if(!campusKey){ outputContainer.innerHTML='<p style="color:#c62828;text-align:center;">請先選擇院區。</p>'; pdfExportBtn.style.display='none'; return; }
+    if(isNaN(totalAmount)||totalAmount<=0){ outputContainer.innerHTML='<p style="color:#c62828;text-align:center;">請輸入有效的合約總金額。</p>'; pdfExportBtn.style.display='none'; return; }
 
-    const campusInfo = CAMPUS_DATA[campusKey];
+    const c = CAMPUS_DATA[campusKey];
     currentOrderNumber = orderNumber;
 
-    const p20 = formatCurrency(totalAmount * 0.20);
-    const p30 = formatCurrency(totalAmount * 0.30);
+    const amt20 = nfmt(totalAmount*0.20);
+    const amt30 = nfmt(totalAmount*0.30);
 
     const html = `
-<div id="pdf-content-wrapper">
-  <div class="document-title">${campusInfo.name}</div>
-  <div class="document-subtitle">【儀器合約注意事項】</div>
+<div id="doc">
+  <div class="doc-title">${c.name}</div>
+  <div class="doc-subtitle">【儀器合約注意事項】</div>
+  <div class="rule"></div>
 
-  <div class="info-group">
-    <div class="info-grid">
-      <div class="kv"><div class="k">請購單編號：</div><div class="v"><span class="highlight">${orderNumber}</span></div></div>
-      <div class="kv"><div class="k">醫院電話：</div><div class="v"><span class="highlight">${campusInfo.phone}</span>　分機：<span class="highlight">${processorExt}</span></div></div>
-      <div class="kv"><div class="k">品名：</div><div class="v"><span class="highlight">${productName}</span></div></div>
-      <div class="kv"><div class="k">經辦人：</div><div class="v"><span class="highlight">${processorName}</span></div></div>
+  <div class="info">
+    <div class="kv-line">
+      <span class="k">請購單編號：</span>
+      <span class="v hl">${orderNumber}</span>
+    </div>
+    <div class="kv-line">
+      <span class="k">醫院電話：</span><span class="v hl">${c.phone}</span>
+      <span class="k">分機：</span><span class="v hl">${processorExt}</span>
+    </div>
+    <div class="kv-line">
+      <span class="k">品名：</span><span class="v hl">${productName}</span>
+    </div>
+    <div class="kv-line">
+      <span class="k">經辦人：</span><span class="v hl">${processorName}</span>
     </div>
   </div>
 
-  <p>空白合約為 <b>一式兩份正本、一本副本</b>（副本僅需作前四頁即可）。</p>
+  <div class="section">
+    <p>空白合約為 <b>一式兩份正本、一本文本</b>（副本僅需作前四頁即可）。</p>
+    <ol>
+      <li>合約內容之 <b>品名、規格、數量（大寫）</b> 皆須填寫完整。</li>
+      <li><b>交貨期限</b> 需與請購單之 <b>約交日</b> 一致。約交日：<span class="hl">${deliveryDate}</span></li>
+      <li>總價、保固年限需固定 <b>大寫</b>（壹、貳、參、肆、伍……）。</li>
+      <li>合約製作同時需付總價 <b>20%</b> 之 <b>履約保固金</b>（公司支票 <span class="amt">$ ${amt20}</span>）<br>
+          <b>若無保證人</b> 其需支付總額 <b>30%</b> 履約保固金（公司支票 <span class="amt">$ ${amt30}</span>）<br>
+          支票影本需浮貼於支票影本黏貼處，並檢附支票正本。</li>
+      <li>兩份正本皆需貼印花（各貼 12 元，共 24 元）。</li>
+      <li>乙方、保證人皆需蓋公司大小章。</li>
+      <li>若儀器無額外零配件，需於零配件表填寫 <b>「以下空白」</b>。</li>
+      <li>廠商保密切結書需蓋公司大小章。</li>
+      <li>合約內容需附報價單（原報價日期及議價金額）、型錄（影本可）、授權書及衛署許可證。</li>
+      <li>合約請裝訂完後再蓋騎縫章，若有修改請蓋小章。</li>
+      <li>外部人員保密切結書需業務本人親筆簽名或蓋章，勿僅是電子簽名。</li>
+    </ol>
+  </div>
 
-  <ol>
-    <li>合約內容之 <b>品名、規格、數量（大寫）</b> 皆須填寫完整。</li>
-    <li><b>交貨期限</b> 需與請購單之 <b>約交日</b> 一致。約交日：<span class="highlight">${deliveryDate}</span></li>
-    <li>總價、保固年限需固定 <b>大寫</b>（壹、貳、參、肆、伍……）。</li>
-    <li>
-      合約製作同時需付總價 <b>20%</b> 之 <b>履約保固金</b>
-      （公司支票 <span class="highlight-amount">$ ${p20}</span>）
-      <div class="cont"><b>若無保證人</b> 其需支付總額 <b>30%</b> 履約保固金
-      （公司支票 <span class="highlight-amount">$ ${p30}</span>）</div>
-      <div class="cont">支票影本需浮貼於支票影本黏貼處，並檢附支票正本。</div>
-    </li>
-    <li>兩份正本皆需貼印花（各貼 12 元，共 24 元）。</li>
-    <li>乙方、保證人皆需蓋公司大小章。</li>
-    <li>若儀器無額外零配件，需於零配件表填寫 <b>「以下空白」</b>。</li>
-    <li>廠商保密切結書需蓋公司大小章。</li>
-    <li>合約內容需附報價單（原報價日期及議價金額）、型錄（影本可）、授權書及衛署許可證。</li>
-    <li>合約請裝訂完後再蓋騎縫章，若有修改請蓋小章。</li>
-    <li>外部人員保密切結書需業務本人親筆簽名或蓋章，勿僅是電子簽名。</li>
-  </ol>
-
-  <p class="section-title red">交機注意：</p>
-  <p style="margin-left:12px;">需提前一天通知以下三單位，以便點交及作帳。</p>
-  <ol>
-    <li>補給組</li>
-    <li>醫工組</li>
-    <li>使用單位</li>
-  </ol>
-
-  <p style="font-weight:bold; margin-top:8px;">※ 於交機時，一併檢附該筆請購單之發票；如為電子發票，需將電子發票證明聯印出。</p>
-  <p style="font-weight:bold;">請於交貨前完成合約簽訂，謝謝。</p>
+  <div class="section">
+    <div class="section-title">交機注意：</div>
+    <p style="margin-left:2mm">需提前一天通知以下三單位，以便點交及作帳。</p>
+    <ol>
+      <li>補給組</li>
+      <li>醫工組</li>
+      <li>使用單位</li>
+    </ol>
+    <p style="font-weight:700;margin-top:2mm;">※ 於交機時，一併檢附該筆請購單之發票；如為電子發票，需將電子發票證明聯印出。</p>
+    <p style="font-weight:700;">請於交貨前完成合約簽訂，謝謝。</p>
+  </div>
 </div>`;
     outputContainer.innerHTML = html;
-
-    requestAnimationFrame(fitPreviewToScreen);
-    pdfExportBtn.style.display = 'block';
+    pdfExportBtn.style.display='inline-block';
   }
 
   // 若 CDN 被擋，自動補載
   async function ensureLibs(){
-    const hasCanvas = !!window.html2canvas;
-    const hasPdfNS = (window.jspdf && (window.jspdf.jsPDF || window.jspdf)) || window.jsPDF;
-    if(hasCanvas && hasPdfNS) return true;
-    const load = (src)=>new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
-    if(!hasCanvas) await load('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
-    if(!hasPdfNS)  await load('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
+    const ok1 = !!window.html2canvas;
+    const ok2 = (window.jspdf && (window.jspdf.jsPDF || window.jspdf)) || window.jsPDF;
+    if(ok1 && ok2) return true;
+    const load = (src)=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+    if(!ok1) await load('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+    if(!ok2) await load('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
     return true;
   }
 
@@ -254,99 +255,69 @@
     return /Line\/|FBAN|FBAV|Instagram|Twitter|Messenger/i.test(ua);
   }
 
-  // 匯出 PDF：鎖版面 + A4 字級（12pt）+ 置中留白縮放 + in-app 分享/預覽備援
+  // 匯出：無預覽，直接分享/下載；縮放置中 + 留白與你圖片相同
   async function exportToPDF(){
-    const el = document.getElementById('pdf-content-wrapper');
-    if(!el) return;
+    const el = document.getElementById('doc');
+    if(!el){ alert('請先生成文件'); return; }
 
-    try{ await ensureLibs(); }catch(e){ alert('無法載入必要函式庫，請改用本機檔。'); return; }
+    try{ await ensureLibs(); }catch(e){ alert('無法載入必要函式庫，請改用外部瀏覽器。'); return; }
 
     window.__exporting = true;
-    const prevScrollY = window.scrollY || 0;
-    const prevTransform = el.style.transform;
-    const prevFontSizeInline = el.style.fontSize;
+    const prevFont = el.style.fontSize;
     document.body.classList.add('exporting');
-
-    // 匯出時：強制 A4 字級 12pt
-    el.style.fontSize = '12pt';
-    el.style.transform = 'none';
-    window.scrollTo(0,0);
+    el.style.fontSize='12pt';   // 匯出一致字級
 
     try{
       if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} }
-      await new Promise(r => requestAnimationFrame(()=>requestAnimationFrame(r)));
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
 
-      const safeScale = Math.min(1.5, window.devicePixelRatio || 1);
-      const canvas = await html2canvas(el, {
-        scale: safeScale, backgroundColor:'#ffffff', useCORS:true, allowTaint:true,
-        scrollX:0, scrollY:0, windowWidth:Math.max(el.scrollWidth, el.offsetWidth, document.documentElement.clientWidth),
-        windowHeight: el.scrollHeight
+      const scale = Math.min(1.5, window.devicePixelRatio || 1);
+      const canvas = await html2canvas(el,{
+        scale, backgroundColor:'#fff', useCORS:true, allowTaint:true,
+        scrollX:0, scrollY:0, windowWidth:el.scrollWidth, windowHeight:el.scrollHeight
       });
 
-      const img = canvas.toDataURL('image/jpeg', 0.98);
-      const ns = window.jspdf || window.jsPDF;
-      const Ctor = ns && (ns.jsPDF || ns);
-      if(!Ctor) throw new Error('jsPDF 未載入');
+      const img = canvas.toDataURL('image/jpeg',0.98);
+      const ns = window.jspdf || window.jsPDF; const Ctor = ns && (ns.jsPDF||ns);
+      const pdf = new Ctor({orientation:'portrait',unit:'mm',format:'a4'});  // 用 A4 畫布，但我們自行控制內容大小/留白
+      const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight();
 
-      const pdf = new Ctor({ orientation:'portrait', unit:'mm', format:'a4' });
-      const W = pdf.internal.pageSize.getWidth();
-      const H = pdf.internal.pageSize.getHeight();
+      /* 這兩個值控制「看起來像你圖片」的大小與留白 */
+      const MARGIN_MM = 16;     // 四周固定留白（再小再大可微調 14~20）
+      const INSIDE    = 0.90;   // 內容進一步縮小（0.88~0.94；目前貼近你的截圖）
 
-      // === 置中縮放到「邊界盒」：控制留白大小 ===
-      const MARGIN_MM   = 18;   // 四邊固定留白（可調 16~22）
-      const INSIDE_SCALE= 0.92; // 內容再微縮（0.90~0.95）
-      const boxW = (W - MARGIN_MM * 2) * INSIDE_SCALE;
-      const boxH = (H - MARGIN_MM * 2) * INSIDE_SCALE;
+      const boxW = (W - MARGIN_MM*2) * INSIDE;
+      const boxH = (H - MARGIN_MM*2) * INSIDE;
 
-      let w = boxW;
-      let h = (canvas.height / canvas.width) * w;
-      if (h > boxH) {
-        const r = boxH / h;
-        w *= r; h *= r;
-      }
-      const x = (W - w) / 2;
-      const y = (H - h) / 2;
+      let w = boxW, h = (canvas.height/canvas.width)*w;
+      if(h>boxH){ const r = boxH/h; w*=r; h*=r; }
+      const x = (W - w)/2, y = (H - h)/2;
 
-      pdf.addImage(img, 'JPEG', x, y, w, h);
+      pdf.addImage(img,'JPEG',x,y,w,h);
 
-      const filename = `奇美合約注意事項_${currentOrderNumber || '未命名'}.pdf`;
+      const filename = `奇美合約注意事項_${(window.currentOrderNumber||'') || '未命名'}.pdf`;
 
       if (isInAppBrowser()) {
         const blob = pdf.output('blob');
         const file = new File([blob], filename, { type: 'application/pdf' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: filename, text: '奇美合約注意事項' });
+          await navigator.share({ files:[file], title: filename, text:'奇美合約注意事項' });
         } else {
           const url = URL.createObjectURL(blob);
-          location.href = url; // in-app 同頁開啟，最穩
+          const a = document.createElement('a'); a.href=url; a.download=filename;
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(()=>URL.revokeObjectURL(url),1500);
         }
       } else {
-        try{ pdf.save(filename); }
-        catch(e){
-          try{
-            const blob = pdf.output('blob');
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click(); a.remove();
-            setTimeout(()=>URL.revokeObjectURL(url), 1500);
-          }catch(_){
-            const url = pdf.output('bloburl');
-            window.open(url, '_blank');
-          }
-        }
+        pdf.save(filename);
       }
-    }catch(err){
-      console.error(err);
-      alert('匯出失敗：請改用外部瀏覽器（Safari/Chrome）或稍後再試。');
+    }catch(e){
+      console.error(e);
+      alert('匯出失敗，請改用 Safari/Chrome 再試。');
     }finally{
-      // 還原：字級/縮放/卷動
-      el.style.fontSize = prevFontSizeInline || '';
       document.body.classList.remove('exporting');
-      el.style.transform = prevTransform || '';
-      if(prevScrollY) window.scrollTo(0, prevScrollY);
+      el.style.fontSize = prevFont || '';
       window.__exporting = false;
-      fitPreviewToScreen();
     }
   }
 </script>
